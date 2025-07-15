@@ -60,9 +60,16 @@ func ValidateFiltering(f *query.Filtering, messageInfo map[string]FilteringOptio
 			}
 
 			if fieldInfo.ValueType == QueryValidate_STRING {
-				v := x.GetValue()
-				if _, err := regexp.Compile(v); err != nil {
-					return fmt.Errorf("incorrect regex %q in field %q %w", v, fieldTag, err)
+				if x.Type == query.StringCondition_MATCH {
+					v := x.GetValue()
+					if _, err := regexp.Compile(v); err != nil {
+						return fmt.Errorf("incorrect regex %q in field %q: %w", v, fieldTag, err)
+					}
+					// Check for PostgreSQL POSIX incompatible patterns
+					if strings.HasPrefix(v, "^*") || strings.Contains(v, "$+") || strings.Contains(v, "$*") || strings.Contains(v, "$?") ||
+						(len(v) > 0 && (v[0] == '*' || v[0] == '+' || v[0] == '?')) {
+						return fmt.Errorf("incorrect regex %q in field %q: regex pattern is invalid in PostgreSQL POSIX", v, fieldTag)
+					}
 				}
 			}
 
