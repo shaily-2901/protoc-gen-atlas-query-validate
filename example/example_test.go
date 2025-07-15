@@ -3,7 +3,7 @@ package example
 import (
 	"testing"
 
-	"github.com/infobloxopen/atlas-app-toolkit/query"
+	"github.com/infobloxopen/atlas-app-toolkit/v2/query"
 )
 
 func TestValidateFiltering(t *testing.T) {

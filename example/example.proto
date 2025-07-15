@@ -3,8 +3,9 @@ syntax = "proto3";
 package example;
 
 import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
 import "github.com/infobloxopen/protoc-gen-atlas-query-validate/options/query_validate.proto";
-import "github.com/infobloxopen/atlas-app-toolkit/query/collection_operators.proto";
+import "github.com/infobloxopen/atlas-app-toolkit/v2/query/collection_operators.proto";
 
 option go_package = "github.com/infobloxopen/protoc-gen-atlas-query-validate/example;example";
 
@@ -32,6 +33,7 @@ message User {
     string company = 13 [(atlas.query.validate).filtering.deny = IEQ];
     string nationality = 14 [(atlas.query.validate).filtering.deny = IN];
     bool boolean_field = 15;
+    google.protobuf.Empty non_object = 16;
 }
 
 message CustomType {
@@ -70,5 +72,8 @@ service TestService {
     }
 
     rpc Read (ReadRequest) returns (ReadUserResponse) {
+    }
+
+    rpc Foo (User) returns (User) {
     }
 }

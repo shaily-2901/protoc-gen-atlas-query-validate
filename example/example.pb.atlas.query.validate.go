@@ -1,7 +1,7 @@
 package example
 
 import (
-	query "github.com/infobloxopen/atlas-app-toolkit/query"
+	query "github.com/infobloxopen/atlas-app-toolkit/v2/query"
 	options "github.com/infobloxopen/protoc-gen-atlas-query-validate/options"
 )
 
@@ -41,6 +41,7 @@ var ExampleMethodsRequireFilteringValidation = map[string]map[string]options.Fil
 		"company":                        options.FilteringOption{Deny: []options.QueryValidate_FilterOperator{options.QueryValidate_IEQ}, ValueType: options.QueryValidate_STRING},
 		"nationality":                    options.FilteringOption{Deny: []options.QueryValidate_FilterOperator{options.QueryValidate_IN}, ValueType: options.QueryValidate_STRING},
 		"boolean_field":                  options.FilteringOption{ValueType: options.QueryValidate_BOOL},
+		"non_object":                     options.FilteringOption{Deny: []options.QueryValidate_FilterOperator{options.QueryValidate_ALL}, ValueType: options.QueryValidate_DEFAULT},
 	},
 }
 var ExampleMethodsRequireSortingValidation = map[string][]string{
@@ -96,6 +97,7 @@ var ExampleMethodsRequireFieldSelectionValidation = map[string][]string{
 		"company",
 		"nationality",
 		"boolean_field",
+		"non_object",
 	},
 	"/example.TestService/Read": {
 		"list_of_addresses.city",
@@ -121,6 +123,7 @@ var ExampleMethodsRequireFieldSelectionValidation = map[string][]string{
 		"company",
 		"nationality",
 		"boolean_field",
+		"non_object",
 	},
 }
 
