@@ -2,6 +2,7 @@ package options
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -56,6 +57,13 @@ func ValidateFiltering(f *query.Filtering, messageInfo map[string]FilteringOptio
 		case *query.StringCondition:
 			if fieldInfo.ValueType != QueryValidate_STRING && fieldInfo.ValueType != QueryValidate_BOOL {
 				return fmt.Errorf("Got invalid literal type for %s, expect %s", fieldTag, fieldInfo.ValueType)
+			}
+
+			if fieldInfo.ValueType == QueryValidate_STRING {
+				v := x.GetValue()
+				if _, err := regexp.Compile(v); err != nil {
+					return fmt.Errorf("incorrect regex %q in field %q %w", v, fieldTag, err)
+				}
 			}
 
 			if fieldInfo.ValueType == QueryValidate_BOOL {
