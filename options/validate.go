@@ -72,6 +72,8 @@ func ValidateFiltering(f *query.Filtering, messageInfo map[string]FilteringOptio
 					// - Cannot start with quantifiers: *, +, ?
 					// - Invalid anchor-quantifier combinations: ^*, $+, $*, $?
 					// While this ties validation to PostgreSQL, it prevents runtime database errors
+          // for the most common deployment scenario. Consider making this configurable
+					// if supporting multiple database engines becomes a requirement.
 					if strings.HasPrefix(v, "^*") || strings.Contains(v, "$+") || strings.Contains(v, "$*") || strings.Contains(v, "$?") ||
 						(len(v) > 0 && (v[0] == '*' || v[0] == '+' || v[0] == '?')) {
 						return fmt.Errorf("incorrect regex %q in field %q: regex pattern is invalid in PostgreSQL POSIX", v, fieldTag)
