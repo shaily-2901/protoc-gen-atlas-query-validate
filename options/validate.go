@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/infobloxopen/atlas-app-toolkit/v2/query"
 )
@@ -55,7 +56,7 @@ func ValidateFiltering(f *query.Filtering, messageInfo map[string]FilteringOptio
 
 		switch x := f.(type) {
 		case *query.StringCondition:
-			if fieldInfo.ValueType != QueryValidate_STRING && fieldInfo.ValueType != QueryValidate_BOOL {
+			if fieldInfo.ValueType != QueryValidate_STRING && fieldInfo.ValueType != QueryValidate_BOOL && fieldInfo.ValueType != QueryValidate_TIMESTAMP {
 				return fmt.Errorf("Got invalid literal type for %s, expect %s", fieldTag, fieldInfo.ValueType)
 			}
 
@@ -72,12 +73,24 @@ func ValidateFiltering(f *query.Filtering, messageInfo map[string]FilteringOptio
 					// - Cannot start with quantifiers: *, +, ?
 					// - Invalid anchor-quantifier combinations: ^*, $+, $*, $?
 					// While this ties validation to PostgreSQL, it prevents runtime database errors
-          // for the most common deployment scenario. Consider making this configurable
+					// for the most common deployment scenario. Consider making this configurable
 					// if supporting multiple database engines becomes a requirement.
 					if strings.HasPrefix(v, "^*") || strings.Contains(v, "$+") || strings.Contains(v, "$*") || strings.Contains(v, "$?") ||
 						(len(v) > 0 && (v[0] == '*' || v[0] == '+' || v[0] == '?')) {
 						return fmt.Errorf("incorrect regex %q in field %q: regex pattern is invalid in PostgreSQL POSIX", v, fieldTag)
 					}
+				}
+			}
+
+			if fieldInfo.ValueType == QueryValidate_TIMESTAMP {
+				// Validate timestamp format
+				if err := validateTimestampFormat(x.GetValue(), fieldTag); err != nil {
+					return err
+				}
+
+				// TIMESTAMP fields don't support MATCH operation
+				if x.Type == query.StringCondition_MATCH {
+					return fmt.Errorf("Operation %s is not allowed for timestamp field %q", query.StringCondition_Type_name[int32(x.Type)], fieldTag)
 				}
 			}
 
@@ -101,8 +114,17 @@ func ValidateFiltering(f *query.Filtering, messageInfo map[string]FilteringOptio
 			nc := &query.Filtering_NumberCondition{x}
 			tp = query.NumberCondition_Type_name[int32(nc.NumberCondition.Type)]
 		case *query.StringArrayCondition:
-			if fieldInfo.ValueType != QueryValidate_STRING && fieldInfo.ValueType != QueryValidate_BOOL {
+			if fieldInfo.ValueType != QueryValidate_STRING && fieldInfo.ValueType != QueryValidate_BOOL && fieldInfo.ValueType != QueryValidate_TIMESTAMP {
 				return fmt.Errorf("Got invalid literal type for %s, expect %s", fieldTag, fieldInfo.ValueType)
+			}
+
+			if fieldInfo.ValueType == QueryValidate_TIMESTAMP {
+				// Validate each timestamp value in the array
+				for i, value := range x.Values {
+					if err := validateTimestampFormat(value, fieldTag); err != nil {
+						return fmt.Errorf("Invalid timestamp at position %d in field %q: %v", i, fieldTag, err)
+					}
+				}
 			}
 
 			if fieldInfo.ValueType == QueryValidate_BOOL {
@@ -263,4 +285,29 @@ func ValidateFieldSelection(fs *query.FieldSelection, allowedFields []string) er
 		}
 	}
 	return nil
+}
+
+// validateTimestampFormat validates that a timestamp string is in a valid format
+func validateTimestampFormat(value, fieldTag string) error {
+	// Common timestamp formats supported by PostgreSQL and similar databases
+	timestampFormats := []string{
+		time.RFC3339,                    // "2006-01-02T15:04:05Z07:00" - ISO 8601 with timezone
+		time.RFC3339Nano,                // "2006-01-02T15:04:05.999999999Z07:00" - RFC3339 with nanoseconds
+		"2006-01-02T15:04:05",           // ISO 8601 without timezone
+		"2006-01-02T15:04:05.999999999", // ISO 8601 with nanoseconds but no timezone
+		"2006-01-02 15:04:05",           // PostgreSQL default format
+		"2006-01-02 15:04:05.999999999", // PostgreSQL with nanoseconds
+	}
+
+	// Remove surrounding quotes if present
+	value = strings.Trim(value, `"`)
+
+	// Try to parse with each format
+	for _, format := range timestampFormats {
+		if _, err := time.Parse(format, value); err == nil {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("invalid timestamp format for field %q: %q", fieldTag, value)
 }

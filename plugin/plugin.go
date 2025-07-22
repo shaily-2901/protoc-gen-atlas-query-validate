@@ -445,8 +445,9 @@ func getValueType(field *stubField) options.QueryValidate_ValueType {
 		return options.QueryValidate_NUMBER
 	case protoreflect.MessageKind:
 		switch string(field.msg.Desc.FullName()) {
+		case protoTypeTimestamp:
+			return options.QueryValidate_TIMESTAMP
 		case protoTypeResource,
-			protoTypeTimestamp,
 			protoTypeUUID,
 			protoTypeUUIDValue,
 			protoTypeInet,
@@ -633,6 +634,15 @@ func (p *QueryValidateBuilder) getDenyRules(fieldName string, opts *options.Quer
 	} else if filterType == options.QueryValidate_BOOL {
 		supportedOps = []options.QueryValidate_FilterOperator{
 			options.QueryValidate_EQ,
+			options.QueryValidate_IN,
+		}
+	} else if filterType == options.QueryValidate_TIMESTAMP {
+		supportedOps = []options.QueryValidate_FilterOperator{
+			options.QueryValidate_EQ,
+			options.QueryValidate_GT,
+			options.QueryValidate_GE,
+			options.QueryValidate_LT,
+			options.QueryValidate_LE,
 			options.QueryValidate_IN,
 		}
 	}

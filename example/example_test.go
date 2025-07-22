@@ -4,9 +4,54 @@ import (
 	"testing"
 
 	"github.com/infobloxopen/atlas-app-toolkit/v2/query"
+	"github.com/infobloxopen/protoc-gen-atlas-query-validate/options"
 )
 
 func TestValidateFiltering(t *testing.T) {
+	// Test timestamp validation for malformed formats
+	t.Run("TimestampValidation", func(t *testing.T) {
+		filteringInfo := map[string]options.FilteringOption{
+			"timestamp_field": {
+				ValueType: options.QueryValidate_TIMESTAMP,
+			},
+		}
+
+		testCases := []struct {
+			name          string
+			value         string
+			shouldSucceed bool
+		}{
+			{"ValidRFC3339", "2023-12-25T10:30:00Z", true},
+			{"ValidISO8601", "2023-12-25T10:30:00", true},
+			{"ValidPostgreSQL", "2023-12-25 10:30:00", true},
+			{"MissingTSeparator", "2023-12-2510:30:00Z", false},
+			{"InvalidFormat", "invalid-timestamp", false},
+			{"DateOnly", "2023-12-25", false},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				filtering := &query.Filtering{
+					Root: &query.Filtering_StringCondition{
+						StringCondition: &query.StringCondition{
+							FieldPath: []string{"timestamp_field"},
+							Type:      query.StringCondition_EQ,
+							Value:     tc.value,
+						},
+					},
+				}
+
+				err := options.ValidateFiltering(filtering, filteringInfo)
+				if tc.shouldSucceed && err != nil {
+					t.Errorf("Expected success for %q, but got error: %v", tc.value, err)
+				}
+				if !tc.shouldSucceed && err == nil {
+					t.Errorf("Expected error for malformed timestamp %q, but validation passed", tc.value)
+				}
+			})
+		}
+	})
+
 	tests := []struct {
 		Query string
 		Err   bool
