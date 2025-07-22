@@ -33,7 +33,7 @@ test: example
 
 .PHONY: vendor
 vendor:
-	dep ensure -vendor-only
+	go mod tidy && go mod vendor
 
 .PHONY: gentool
 gentool:
