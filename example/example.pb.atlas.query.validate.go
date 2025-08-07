@@ -1,7 +1,7 @@
 package example
 
 import (
-	query "github.com/infobloxopen/atlas-app-toolkit/v2/query"
+	query "github.com/infobloxopen/atlas-app-toolkit/query"
 	options "github.com/infobloxopen/protoc-gen-atlas-query-validate/options"
 )
 
